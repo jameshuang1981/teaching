@@ -1,53 +1,55 @@
 
-from itertools import product
-
+# modules
+import sys
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn import datasets
-from sklearn.neural_network import MLPClassifier
-from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
+from itertools import product
 
 if __name__ == "__main__":
+    # get parameters
+    data_file = sys.argv[1]
+    header = sys.argv[2]
+
     # load data
-    # digits = datasets.load_digits()
-    # X = digits.data[:, [0, 2]]
-    # y = digits.target
-    # print(X)
-    # print(y)
-    X = [[0., 0.], [0., 1.], [1., 0.], [1., 1.]]
-    y = [0, 1, 1, 0]
+    X = []
+    y = []
+    with open(data_file, 'r') as f:
+        spamreader = list(csv.reader(f, delimiter = ','))
+        start = 1 if header else 0
+        for i in range(start, len(spamreader)):
+            line = spamreader[i]
+            n = len(line)
+            x = []
+            for i in range(0, n - 1):
+                x.append(float(line[i].strip()))
+            X.append(x)
+            y.append(int(line[n - 1].strip()))
 
     # fit data
-    # clf_lin = LinearRegression()
-    # clf_lin.fit(X, y)
     clf_log = LogisticRegression()
     clf_log.fit(X, y)
     clf_nn = MLPClassifier()
     clf_nn.fit(X, y)
 
     # Plot decision regions
-    # x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    # y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
     x_min, x_max = min([x[0] for x in X]) - 1, max([x[0] for x in X]) + 1
     y_min, y_max = min([x[1] for x in X]) - 1, max([x[1] for x in X]) + 1
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1), np.arange(y_min, y_max, 0.1))
+    xx, yy = np.meshgrid(np.arange(x_min, x_max + 0.1, 0.1), np.arange(y_min, y_max + 0.1, 0.1))
 
-    f, axarr = plt.subplots(2, 1, sharex='col', sharey='row', figsize=(10, 8))
+    for clf, tt in zip([clf_log, clf_nn], ['logistic regression', 'neural network']):
+        # get the class
+        Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+        Z = Z.reshape(xx.shape)
 
-    for idx, clf, tt in zip([[0], [1]],
-                           # product([0], [0, 1]),
-                           # [clf_log, clf_log, clf_nn, clf_nn],
-                           [clf_log, clf_nn],
-                           # ['linear regression', 'logistic regression','probit regression', 'neural network']):
-                           ['logistic regression', 'neural network']):
-                           Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
-                           Z = Z.reshape(xx.shape)
-
-                           axarr[idx[0]].contourf(xx, yy, Z, alpha = 0.5)
-                           # axarr[idx[0], idx[1]].scatter(X[:, 0], X[:, 1], c=y, alpha=0.8)
-                           axarr[idx[0]].scatter([x[0] for x in X], [x[1] for x in X])
-                           axarr[idx[0]].set_title(tt)
-
-    plt.show()
+        # plot contourf
+        plt.figure()
+        plt.contourf(xx, yy, Z, alpha = 0.5)
+        plt.scatter([x[0] for x in X], [x[1] for x in X], c = y, s = 100, alpha = 0.5)
+        plt.title(tt)
+        plt.xlim(-1, 2)
+        plt.ylim(-1, 2)
+        plt.show()
